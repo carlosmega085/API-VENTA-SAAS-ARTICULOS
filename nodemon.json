@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "node_modules",
+    "logs/*",
+    "*.log",
+    "tmp/*",
+    "empresas/*",
+    "scripts/*"
+  ],
+  "delay": "2500",
+  "ext": "js,json"
+}
