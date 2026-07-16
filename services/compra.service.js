@@ -75,6 +75,9 @@ class CompraService {
       transaction
     });
 
+    // Bloquear la fila para lectura/escritura exclusiva en esta transacción
+    await inv.reload({ transaction, lock: transaction.LOCK.UPDATE });
+
     // 2. Actualizar stock
     const nuevoStock = inv.stock_actual + cantidad;
     await inv.update({ stock_actual: nuevoStock }, { transaction });

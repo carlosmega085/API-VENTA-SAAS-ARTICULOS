@@ -1,4 +1,5 @@
-import { Gasto, Caja, CajaMovimiento, sequelize } from '../models/index.js';
+import { Gasto, sequelize } from '../models/index.js';
+import cajaService from './caja.service.js';
 
 class GastoService {
   /**
@@ -22,16 +23,11 @@ class GastoService {
 
       // 2. Si se especificó una caja, registrar el movimiento de salida
       if (caja_id) {
-        const caja = await Caja.findByPk(caja_id, { transaction });
-        if (!caja || caja.estado !== 'abierta') {
-          throw new Error('La caja especificada no existe o no está abierta');
-        }
-
-        await CajaMovimiento.create({
-          caja_id,
-          usuario_id,
-          tipo: 'egreso_manual',
-          monto: -Math.abs(monto),
+        await cajaService.registrarMovimiento(caja_id, usuario_id, {
+          tipo: 'gasto',
+          monto: monto,
+          metodo_pago: 'efectivo',
+          referencia_id: gasto.id,
           descripcion: `GASTO: ${categoria} - ${descripcion || 'Sin detalle'}`
         }, { transaction });
       }

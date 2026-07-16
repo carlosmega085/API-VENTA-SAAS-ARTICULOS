@@ -1,4 +1,5 @@
-import { Venta, Abono, CajaMovimiento, Caja, Cliente, Tienda, Usuario, sequelize } from '../models/index.js';
+import { Venta, Abono, Cliente, Tienda, Usuario, sequelize } from '../models/index.js';
+import cajaService from './caja.service.js';
 import { Op } from 'sequelize';
 
 class CreditoService {
@@ -31,14 +32,12 @@ class CreditoService {
       }, { transaction });
 
       // 3. Crear movimiento de caja
-      await CajaMovimiento.create({
-        caja_id,
-        usuario_id,
-        tipo: 'ingreso',
+      await cajaService.registrarMovimiento(caja_id, usuario_id, {
+        tipo: 'ingreso_manual',
         monto: montoAbonar,
-        concepto: `Abono de cliente - Ref. Venta #${venta.secuencia_venta || venta.id}`,
         metodo_pago,
-        referencia: `Abono #${abono.id}`
+        referencia_id: abono.id,
+        descripcion: `Abono de cliente - Ref. Venta #${venta.secuencia_venta || venta.id}`
       }, { transaction });
 
       // 4. Actualizar saldo de la venta y cliente

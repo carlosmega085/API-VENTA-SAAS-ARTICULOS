@@ -18,6 +18,9 @@ class InventarioService {
         transaction
       });
 
+      // Bloquear la fila para lectura/escritura exclusiva en esta transacción
+      await inventario.reload({ transaction, lock: transaction.LOCK.UPDATE });
+
       // 2. Calcular nuevo stock
       let delta = cantidad;
       if (['venta', 'transferencia_salida', 'ajuste_negativo'].includes(tipo)) {

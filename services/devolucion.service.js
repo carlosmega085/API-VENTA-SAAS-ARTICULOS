@@ -2,11 +2,11 @@ import {
   Devolucion, 
   DetalleDevolucion, 
   Venta, 
-  CajaMovimiento, 
   Inventario, 
   InventarioMovimiento, 
   sequelize 
 } from '../models/index.js';
+import cajaService from './caja.service.js';
 
 class DevolucionService {
   /**
@@ -54,6 +54,8 @@ class DevolucionService {
           transaction
         });
 
+        await inv.reload({ transaction, lock: transaction.LOCK.UPDATE });
+
         await inv.update({ 
           stock_actual: inv.stock_actual + cantidad 
         }, { transaction });
@@ -74,11 +76,11 @@ class DevolucionService {
 
       // 5. AFECTAR CAJA si es reembolso en efectivo
       if (tipo_reembolso === 'efectivo' && caja_id) {
-        await CajaMovimiento.create({
-          caja_id,
-          usuario_id,
+        await cajaService.registrarMovimiento(caja_id, usuario_id, {
           tipo: 'egreso_manual',
-          monto: -Math.abs(montoDevolver),
+          monto: montoDevolver,
+          metodo_pago: 'efectivo',
+          referencia_id: devolucion.id,
           descripcion: `REEMBOLSO DEVOLUCIÓN ID: ${devolucion.id}`
         }, { transaction });
       }

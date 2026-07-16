@@ -38,7 +38,8 @@ class TransferenciaService {
         // DESCONTAR STOCK ORIGEN
         const invOrigen = await Inventario.findOne({
           where: { tienda_id: tienda_origen_id, producto_variante_id },
-          transaction
+          transaction,
+          lock: transaction.LOCK.UPDATE
         });
 
         if (!invOrigen || invOrigen.stock_actual < cantidad) {
@@ -88,6 +89,8 @@ class TransferenciaService {
           defaults: { stock_actual: 0 },
           transaction
         });
+
+        await invDestino.reload({ transaction, lock: transaction.LOCK.UPDATE });
 
         await invDestino.update({ stock_actual: invDestino.stock_actual + detalle.cantidad }, { transaction });
 

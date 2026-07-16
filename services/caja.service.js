@@ -60,8 +60,9 @@ class CajaService {
     }
   }
 
-  async registrarMovimiento(caja_id, usuario_id, { tipo, monto, metodo_pago = 'efectivo', referencia_id = null, descripcion = '' }) {
-    const transaction = await sequelize.transaction();
+  async registrarMovimiento(caja_id, usuario_id, { tipo, monto, metodo_pago = 'efectivo', referencia_id = null, descripcion = '' }, options = {}) {
+    const transaction = options.transaction || await sequelize.transaction();
+    const shouldCommit = !options.transaction;
     try {
       const caja = await Caja.findByPk(caja_id, { transaction, lock: transaction.LOCK.UPDATE });
       if (!caja) throw new Error('Caja no encontrada');
@@ -88,10 +89,10 @@ class CajaService {
         descripcion
       }, { transaction });
 
-      await transaction.commit();
+      if (shouldCommit) await transaction.commit();
       return movimiento;
     } catch (error) {
-      await transaction.rollback();
+      if (shouldCommit) await transaction.rollback();
       throw error;
     }
   }
