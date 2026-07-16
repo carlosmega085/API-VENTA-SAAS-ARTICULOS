@@ -1,32 +1,44 @@
+import { Sequelize } from 'sequelize'
+import dotenv from 'dotenv'
 
+// Solo carga .env si no estás en producción
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config()
+}
 
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+// Extrae variables del entorno
+const {
+  MYSQLHOST,
+  MYSQLPORT,
+  MYSQLUSER,
+  MYSQLPASSWORD,
+  MYSQLDATABASE
+} = process.env
 
-dotenv.config();
+// Validación de variables
+if (!MYSQLHOST || !MYSQLPORT || !MYSQLUSER || !MYSQLPASSWORD || !MYSQLDATABASE) {
+  throw new Error('❌ Variables MySQL no definidas. Verificá el .env o configura las variables en Railway / entorno producción')
+}
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'app_venta_saas',
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST || '127.0.0.1',
-    dialect: 'mysql',
-    logging: false, // Set to console.log to see SQL queries
-    define: {
-      timestamps: true,
-      underscored: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at'
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
-  }
-);
+// Log solo en desarrollo
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔍 DB Config:', {
+    MYSQLHOST,
+    MYSQLPORT,
+    MYSQLUSER,
+    MYSQLDATABASE,
+    NODE_ENV: process.env.NODE_ENV
+  })
+}
 
-export default sequelize;
+// Conexión Sequelize
+const sequelize = new Sequelize(MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD, {
+  host: MYSQLHOST,
+  port: Number(MYSQLPORT),
+  dialect: 'mysql',
+  logging: false,
+  //  timezone: '-06:00'
+})
+
+export default sequelize
 
