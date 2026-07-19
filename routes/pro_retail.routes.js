@@ -44,6 +44,7 @@ router.get('/reportes/top-productos', authorize(['admin']), reporteController.to
 router.get('/reportes/inventario', authorize(['admin']), reporteController.reporteInventario);
 router.get('/reportes/flujo-caja', authorize(['admin', 'supervisor', 'vendedor']), reporteController.flujoCaja);
 router.get('/reportes/utilidad', authorize(['admin']), reporteController.reporteUtilidad);
+router.get('/reportes/ventas-vendedores', authorize(['admin']), reporteController.ventasPorVendedor);
 
 // --- VENTAS (Búsqueda extra) ---
 router.get('/ventas/factura/:numero_factura', authorize(['admin', 'supervisor']), ventaController.getByFactura);

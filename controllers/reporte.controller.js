@@ -10,10 +10,11 @@ class ReporteController {
   async reporteVentas(req, res) {
     try {
       const { empresa_id } = req.user;
-      const { desde, hasta, tienda_id } = req.query;
+      const { desde, hasta, tienda_id, usuario_id } = req.query;
 
       const where = { empresa_id };
       if (tienda_id) where.tienda_id = tienda_id;
+      if (usuario_id) where.usuario_id = usuario_id;
       if (desde && hasta) {
         where.created_at = { [Op.between]: [`${desde} 00:00:00`, `${hasta} 23:59:59`] };
       }
@@ -65,7 +66,7 @@ class ReporteController {
   async flujoCaja(req, res) {
     try {
       const { empresa_id, rol, tienda_id: userTiendaId } = req.user;
-      const { tienda_id, desde, hasta } = req.query;
+      const { tienda_id, desde, hasta, usuario_id } = req.query;
 
       // Seguridad: Si no es admin, forzar su tienda activa
       const targetTiendaId = (rol === 'admin') ? tienda_id : userTiendaId;
@@ -79,7 +80,8 @@ class ReporteController {
           tipo_pago: 'contado',
           estado: { [Op.ne]: 'anulada' },
           ...dateFilter, 
-          ... (targetTiendaId ? { tienda_id: targetTiendaId } : {}) 
+          ... (targetTiendaId ? { tienda_id: targetTiendaId } : {}),
+          ... (usuario_id ? { usuario_id } : {})
         } 
       }) || 0;
 
@@ -91,7 +93,8 @@ class ReporteController {
           required: true,
           where: {
             empresa_id,
-            ... (targetTiendaId ? { tienda_id: targetTiendaId } : {})
+            ... (targetTiendaId ? { tienda_id: targetTiendaId } : {}),
+            ... (usuario_id ? { usuario_id } : {})
           }
         }]
       }) || 0;
@@ -118,20 +121,21 @@ class ReporteController {
   async reporteUtilidad(req, res) {
     try {
       const { empresa_id } = req.user;
-      const { desde, hasta, tienda_id } = req.query;
+      const { desde, hasta, tienda_id, usuario_id } = req.query;
 
       const dateFilter = (desde && hasta) ? { created_at: { [Op.between]: [`${desde} 00:00:00`, `${hasta} 23:59:59`] } } : {};
       const tiendaFilter = tienda_id ? { tienda_id } : {};
+      const usuarioFilter = usuario_id ? { usuario_id } : {};
 
       // 1. Total Ventas (Ingreso Neto)
       const totalVentas = await Venta.sum('total', { 
-        where: { empresa_id, estado: { [Op.ne]: 'anulada' }, ...dateFilter, ...tiendaFilter } 
+        where: { empresa_id, estado: { [Op.ne]: 'anulada' }, ...dateFilter, ...tiendaFilter, ...usuarioFilter } 
       }) || 0;
 
       // 2. Costo de lo vendido
       // Obtenemos los IDs de las ventas que califican
       const ventasIds = await Venta.findAll({
-        where: { empresa_id, estado: { [Op.ne]: 'anulada' }, ...dateFilter, ...tiendaFilter },
+        where: { empresa_id, estado: { [Op.ne]: 'anulada' }, ...dateFilter, ...tiendaFilter, ...usuarioFilter },
         attributes: ['id']
       });
 
@@ -176,10 +180,11 @@ class ReporteController {
   async topProductos(req, res) {
     try {
       const { empresa_id } = req.user;
-      const { desde, hasta, tienda_id, limit = 10 } = req.query;
+      const { desde, hasta, tienda_id, usuario_id, limit = 10 } = req.query;
 
       const dateFilter = (desde && hasta) ? { created_at: { [Op.between]: [`${desde} 00:00:00`, `${hasta} 23:59:59`] } } : {};
       const tiendaFilter = tienda_id ? { tienda_id } : {};
+      const usuarioFilter = usuario_id ? { usuario_id } : {};
 
       const topVendidos = await DetalleVenta.findAll({
         attributes: [
@@ -190,7 +195,7 @@ class ReporteController {
         include: [
           {
             model: Venta,
-            where: { empresa_id, estado: { [Op.ne]: 'anulada' }, ...dateFilter, ...tiendaFilter },
+            where: { empresa_id, estado: { [Op.ne]: 'anulada' }, ...dateFilter, ...tiendaFilter, ...usuarioFilter },
             attributes: []
           },
           {
@@ -220,6 +225,47 @@ class ReporteController {
       return sendSuccess(res, formatted, 'Top de productos generado');
     } catch (error) {
       console.error('[TOP_PRODUCTOS_ERROR]', error);
+      return sendError(res, error.message);
+    }
+  }
+
+  /**
+   * RANKING VENDEDORES: Ventas por usuario vendedor
+   */
+  async ventasPorVendedor(req, res) {
+    try {
+      const { empresa_id } = req.user;
+      const { desde, hasta, tienda_id } = req.query;
+
+      const where = { 
+        empresa_id,
+        estado: { [Op.ne]: 'anulada' }
+      };
+      if (tienda_id) where.tienda_id = tienda_id;
+      if (desde && hasta) {
+        where.created_at = { [Op.between]: [`${desde} 00:00:00`, `${hasta} 23:59:59`] };
+      }
+
+      const { Usuario } = await import('../models/index.js');
+
+      const ranking = await Venta.findAll({
+        where,
+        attributes: [
+          'usuario_id',
+          [sequelize.fn('SUM', sequelize.col('total')), 'total_ventas'],
+          [sequelize.fn('COUNT', sequelize.col('Venta.id')), 'cantidad_transacciones'],
+          [sequelize.fn('AVG', sequelize.col('total')), 'ticket_promedio']
+        ],
+        include: [{
+          model: Usuario,
+          attributes: ['nombre', 'username']
+        }],
+        group: ['usuario_id', 'Usuario.id'],
+        order: [[sequelize.literal('total_ventas'), 'DESC']]
+      });
+
+      return sendSuccess(res, ranking, 'Reporte de ventas por vendedor generado');
+    } catch (error) {
       return sendError(res, error.message);
     }
   }
