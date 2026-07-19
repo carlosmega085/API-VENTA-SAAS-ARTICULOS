@@ -91,6 +91,7 @@ class ReporteController {
         include: [{
           model: Venta,
           required: true,
+          attributes: [],
           where: {
             empresa_id,
             ... (targetTiendaId ? { tienda_id: targetTiendaId } : {}),
