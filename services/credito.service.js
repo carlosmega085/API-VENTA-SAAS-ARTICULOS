@@ -1,4 +1,4 @@
-import { Venta, Abono, Cliente, Tienda, Usuario, sequelize } from '../models/index.js';
+import { Venta, Abono, Cliente, Tienda, Usuario, Caja, sequelize } from '../models/index.js';
 import cajaService from './caja.service.js';
 import { Op } from 'sequelize';
 
