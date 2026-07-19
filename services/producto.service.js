@@ -25,25 +25,34 @@ class ProductoService {
     return publicUrl;
   }
 
-  async getAll(empresa_id) {
+  async getAll(empresa_id, { tienda_id } = {}) {
     const { Categoria, Atributo } = await import('../models/index.js');
+    
+    const inventarioInclude = {
+      model: Inventario,
+      attributes: ['tienda_id', 'stock_actual']
+    };
+
+    if (tienda_id) {
+      inventarioInclude.where = { tienda_id };
+      inventarioInclude.required = true;
+    }
+
     return await Producto.findAll({
       where: { empresa_id },
       include: [
-        { model: Categoria },
+        { model: Categoria, as: 'categoria' },
         { 
           model: ProductoVariante, 
           as: 'variantes',
+          required: tienda_id ? true : false,
           include: [
             { 
               model: AtributoValor, 
               as: 'atributos',
               include: [{ model: Atributo, as: 'Atributo' }]
             },
-            {
-              model: Inventario,
-              attributes: ['tienda_id', 'stock_actual']
-            }
+            inventarioInclude
           ]
         }
       ]
@@ -203,7 +212,7 @@ class ProductoService {
     const producto = await Producto.findOne({
       where: { id, empresa_id },
       include: [
-        { model: Categoria },
+        { model: Categoria, as: 'categoria' },
         { 
           model: ProductoVariante, 
           as: 'variantes',

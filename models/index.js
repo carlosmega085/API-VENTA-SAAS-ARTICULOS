@@ -77,8 +77,8 @@ Empresa.hasMany(Producto, { foreignKey: 'empresa_id' });
 Producto.belongsTo(Empresa, { foreignKey: 'empresa_id' });
 
 // Categoria <-> Producto
-Categoria.hasMany(Producto, { foreignKey: 'categoria_id' });
-Producto.belongsTo(Categoria, { foreignKey: 'categoria_id' });
+Categoria.hasMany(Producto, { foreignKey: 'categoria_id', as: 'productos' });
+Producto.belongsTo(Categoria, { foreignKey: 'categoria_id', as: 'categoria' });
 
 // Producto <-> ProductoVariante
 Producto.hasMany(ProductoVariante, { foreignKey: 'producto_id', as: 'variantes' });

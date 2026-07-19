@@ -5,7 +5,8 @@ import { productoSchema } from '../validations/producto.validation.js';
 class ProductoController {
   async getAll(req, res) {
     try {
-      const result = await productoService.getAll(req.empresa_id);
+      const tienda_id = req.user.rol === 'vendedor' ? req.user.tienda_id : req.query.tienda_id;
+      const result = await productoService.getAll(req.empresa_id, { tienda_id });
       return sendSuccess(res, result);
     } catch (error) {
       return sendError(res, error.message);
